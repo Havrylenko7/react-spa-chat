@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+body {
+  background-color: #16a085;
+}
+
+* {
+  font-family: "Montserrat", "Trebuchet MS", Helvetica, sans-serif;;
+  font-weight: 500;
+  
+  &:focus {
+    outline: none;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+button {
+  cursor: pointer;
+}
+
+select {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+}
+
+.appWrapper {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
