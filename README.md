@@ -10,9 +10,9 @@ First, download current repository:
 git clone https://github.com/Havrylenko7/react-spa-chat.git
 ```
 
-Initialize your project using [Firebase](https://firebase.google.com). Follow these [steps](https://firebase.google.com/docs/firestore/quickstart) related to the creation of a new project.
+Initialize your project using [Firebase](https://firebase.google.com). Follow these [steps](https://firebase.google.com/docs/firestore/quickstart) related to the creation of a new project. Then take a look on that [page](https://firebase.google.com/docs/storage/web/start) as well for file storage creation and necessary tuning.
 
-After initializing you have to create your `firebaseConfig.js` file which should look like that:
+After initializing you have to create your `firebaseConfig.js` file in `src` folder which should look like that:
 ```
 export const firebaseConfig = {
   apiKey: "yourApiKey",

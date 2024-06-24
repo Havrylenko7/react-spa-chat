@@ -1,7 +1,8 @@
 export interface IMessage {
   id: number;
   text: string;
-  sender: string
+  sender: string;
+  fileId?: string
 };
 
 export interface IChat {

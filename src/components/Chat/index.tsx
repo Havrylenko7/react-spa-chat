@@ -1,9 +1,11 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import './index.scss';
 
-import { db, auth } from '../../firebase';
+import { db, auth, storage } from '../../firebase';
 import { setDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import { UsersContext } from '../../context/UsersContext';
 import { ChatsContext } from '../../context/ChatsContext';
@@ -17,12 +19,15 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   const [messages, setMessages] = useState<IChat | null>(null);
   const [text, setText] = useState<string>('');
-  const [curChat, setCurChat] = useState<string>();
+  const [curChat, setCurChat] = useState<string>('');
   const [availableUsers , setAvailableUsers] = useState<IUser[]>([]);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [currentFileURL, setCurrentFileURL] = useState<string | null>('');
   const { users } = useContext(UsersContext);
   const { chats } = useContext(ChatsContext);
 
-  const ref = useRef<HTMLDivElement>();
+  const screenRef = useRef<HTMLDivElement>();
+  const inputRef = useRef<HTMLInputElement>(); 
 
   const signOutFunc = () => {
     signOut(auth).then(() => {
@@ -74,7 +79,37 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
         setText('')
       }
 
-      ref.current.scrollTop = ref.current.scrollHeight
+      if (currentFile) {
+        const fileToken = Math.random().toString(36).substr(2);
+        const storageRef = ref(storage, fileToken);
+        
+        uploadBytes(storageRef, currentFile);
+        
+        await updateDoc(docRef, {
+          unread,
+          messages: arrayUnion({
+            text: currentFile.name,
+            sender: currentUser,
+            id: !!text ? chat.messages.length + 1 : chat.messages.length,
+            fileId: fileToken
+          })
+        });
+
+        setCurrentFile(null)
+      }
+
+      screenRef.current.scrollTop = screenRef.current.scrollHeight
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const openFile = async (id: string) => {
+    const storageRef = ref(storage, id);
+
+    try {
+      const url = await getDownloadURL(storageRef);
+      window.open(url, "_blank")
     } catch (error) {
       console.error(error)
     }
@@ -102,6 +137,23 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
     setAvailableUsers(filtered as IUser[])
   };
 
+  const toggleClip = () => {
+    if (currentFile) {
+      window.open(currentFileURL, "_blank")
+    } else {
+      inputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    const fileUrl = URL.createObjectURL(file);
+
+    inputRef.current.value = null;
+    setCurrentFile(file);
+    setCurrentFileURL(fileUrl);
+  };
+
   useEffect(() => {
     const chat = chats.find(item => item.id === curChat);
     
@@ -113,7 +165,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   }, [users, chats]);
 
   useEffect(() => {
-    if (ref.current) ref.current.scrollTop = ref.current.scrollHeight
+    if (screenRef.current) screenRef.current.scrollTop = screenRef.current.scrollHeight
   }, [messages]);
 
   return (
@@ -167,15 +219,18 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
             </div>
 
             <div className="messagesContainer">
-              <div className="messageContainer" ref={ref}>
+              <div className="messageContainer" ref={screenRef}>
                 {messages?.messages && messages.messages.map(message =>
                   <div
                     key={message.id}
                     className="message"
                     style={{
                       backgroundColor: currentUser !== message.sender && '#535c68',
-                      alignSelf: currentUser === message.sender && 'flex-end'
+                      alignSelf: currentUser === message.sender && 'flex-end',
+                      textDecoration: message.fileId && 'underline',
+                      cursor: message.fileId && 'pointer'
                     }}
+                    onClick={() => message.fileId && openFile(message.fileId)}
                   >
                     {message.text}
                   </div>
@@ -189,6 +244,25 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                   onChange={e => setText(e.target.value)}
                   value={text}
                 />
+                <div>
+                  <div 
+                    className="clipBtn"
+                    onClick={() => toggleClip()}
+                  >
+                    <input 
+                      type="file"
+                      onChange={e => handleFileChange(e)}
+                      ref={inputRef}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                  <div
+                    className="tooltip"
+                    style={{ display: !currentFile && 'none' }}
+                  >
+                    Added!
+                  </div>
+                </div>
                 <button onClick={() => send(messages)}>Send</button>
               </div>
             </div>
